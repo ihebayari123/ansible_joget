@@ -98,7 +98,7 @@
     restart_policy: unless-stopped
     volumes:
       - "{{ volume_joget }}:/opt/joget/wflow"
-      - "/tmp/postgresql-42.2.19.jar:/opt/joget/apache-tomcat-9.0.65/lib/postgresql-42.2.19.jar:ro"
+      - "/tmp/postgresql-42.2.19.jar:/deployments/apache-tomcat/lib/postgresql-42.2.19.jar:ro"
     networks:
       - name: "{{ network_name }}"
     ports:
