@@ -69,17 +69,36 @@
   register: admin_check
   failed_when: admin_check.stdout.strip() == "0"
 
-- name: Run Joget container with PostgreSQL datasource
+- name: Create volume for Joget wflow data
+  docker_volume:
+    name: "{{ volume_joget }}"
+
+- name: Copy PostgreSQL JDBC driver to host
+  copy:
+    src: postgresql-42.2.19.jar
+    dest: /tmp/postgresql-42.2.19.jar
+
+- name: Write app_datasource-postgresql.properties into the Joget volume
+  shell: |
+    docker run --rm -v {{ volume_joget }}:/opt/joget/wflow busybox sh -c "cat > /opt/joget/wflow/app_datasource-postgresql.properties" <<'EOF'
+    workflowUser={{ postgres_user }}
+    workflowPassword={{ postgres_password }}
+    workflowDriver=org.postgresql.Driver
+    workflowUrl=jdbc\:postgresql\://{{ postgres_container_name }}/{{ postgres_db }}
+    EOF
+
+- name: Activate the postgresql datasource profile
+  shell: |
+    docker run --rm -v {{ volume_joget }}:/opt/joget/wflow busybox sh -c "echo 'currentProfile=postgresql' > /opt/joget/wflow/app_datasource.properties"
+
+- name: Run Joget container with PostgreSQL config and driver mounted
   docker_container:
     name: "{{ joget_container_name }}"
     image: "{{ joget_image }}:{{ joget_version }}"
     restart_policy: unless-stopped
-    env:
-      APP_SRC: postgresql
-      JOGET_JDBC_DRIVER: org.postgresql.Driver
-      JOGET_JDBC_URL: "jdbc:postgresql://{{ postgres_container_name }}:5432/{{ postgres_db }}"
-      JOGET_DB_USER: "{{ postgres_user }}"
-      JOGET_DB_PASSWORD: "{{ postgres_password }}"
+    volumes:
+      - "{{ volume_joget }}:/opt/joget/wflow"
+      - "/tmp/postgresql-42.2.19.jar:/opt/joget/apache-tomcat-9.0.65/lib/postgresql-42.2.19.jar:ro"
     networks:
       - name: "{{ network_name }}"
     ports:
