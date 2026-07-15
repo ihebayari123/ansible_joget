@@ -72,7 +72,7 @@
 - name: Run Joget container with PostgreSQL datasource
   docker_container:
     name: "{{ joget_container_name }}"
-    image: "jogetworkflow/jw-community:{{ joget_version }}"
+    image: "{{ joget_image }}:{{ joget_version }}"
     restart_policy: unless-stopped
     env:
       APP_SRC: postgresql
