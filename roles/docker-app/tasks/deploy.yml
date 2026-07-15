@@ -1,0 +1,86 @@
+# roles/docker-app/tasks/deploy.yml
+
+- name: Create Docker network
+  docker_network:
+    name: "{{ network_name }}"
+    state: present
+
+- name: Create volume for Postgres
+  docker_volume:
+    name: "{{ volume_postgres }}"
+
+- name: Copy jwdb-postgres.sql init script to host
+  copy:
+    src: jwdb-postgres.sql
+    dest: /tmp/jwdb-postgres.sql
+
+- name: Run PostgreSQL container with init script mounted
+  docker_container:
+    name: "{{ postgres_container_name }}"
+    image: "postgres:{{ postgres_version }}"
+    restart_policy: unless-stopped
+    env:
+      POSTGRES_DB: "{{ postgres_db }}"
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+    volumes:
+      - "{{ volume_postgres }}:/var/lib/postgresql/data"
+      - "/tmp/jwdb-postgres.sql:/docker-entrypoint-initdb.d/jwdb-postgres.sql:ro"
+    networks:
+      - name: "{{ network_name }}"
+    ports:
+      - "{{ port_postgres }}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user }} -d {{ postgres_db }}"]
+      interval: 10s
+      retries: 10
+      timeout: 5s
+
+- name: Wait for Postgres container to be healthy
+  shell: docker inspect -f '{{ '{{' }} .State.Health.Status {{ '}}' }}' {{ postgres_container_name }}
+  register: pg_health
+  retries: 10
+  delay: 10
+  until: pg_health.stdout == "healthy"
+
+- name: Wait for schema import to complete (check table count)
+  shell: >
+    docker exec {{ postgres_container_name }}
+    psql -U {{ postgres_user }} -d {{ postgres_db }} -tAc
+    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
+  register: table_count
+  retries: 15
+  delay: 10
+  until: table_count.stdout.strip() | int >= 112
+
+- name: Verify app_app table exists
+  shell: >
+    docker exec {{ postgres_container_name }}
+    psql -U {{ postgres_user }} -d {{ postgres_db }} -tAc
+    "SELECT to_regclass('public.app_app');"
+  register: app_app_check
+  failed_when: "'app_app' not in app_app_check.stdout"
+
+- name: Verify seeded admin user exists
+  shell: >
+    docker exec {{ postgres_container_name }}
+    psql -U {{ postgres_user }} -d {{ postgres_db }} -tAc
+    "SELECT count(*) FROM dir_user WHERE username='admin';"
+  register: admin_check
+  failed_when: admin_check.stdout.strip() == "0"
+
+- name: Run Joget container with PostgreSQL datasource
+  docker_container:
+    name: "{{ joget_container_name }}"
+    image: "jogetworkflow/jw-community:{{ joget_version }}"
+    restart_policy: unless-stopped
+    env:
+      APP_SRC: postgresql
+      JOGET_JDBC_DRIVER: org.postgresql.Driver
+      JOGET_JDBC_URL: "jdbc:postgresql://{{ postgres_container_name }}:5432/{{ postgres_db }}"
+      JOGET_DB_USER: "{{ postgres_user }}"
+      JOGET_DB_PASSWORD: "{{ postgres_password }}"
+    networks:
+      - name: "{{ network_name }}"
+    ports:
+      - "{{ port_joget }}:8080"
