@@ -77,10 +77,10 @@
     path: /tmp/jwdb-postgres.sql
     state: absent
 
-- name: Copy PostgreSQL JDBC driver to host
+- name: Copy jwdb-postgres.sql init script to host
   copy:
-    src: postgresql-42.2.19.jar
-    dest: /tmp/postgresql-42.2.19.jar
+    src: jwdb-postgres.sql
+    dest: /tmp/jwdb-postgres.sql
 
 - name: Write app_datasource-postgresql.properties into the Joget volume
   shell: |
