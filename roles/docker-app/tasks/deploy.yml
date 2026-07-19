@@ -102,6 +102,7 @@
     name: "{{ joget_container_name }}"
     image: "{{ joget_image }}:{{ joget_version }}"
     restart_policy: unless-stopped
+    restart: true
     volumes:
       - "{{ volume_joget }}:/opt/joget/wflow"
       - "/tmp/postgresql-42.2.19.jar:/deployments/apache-tomcat/lib/postgresql-42.2.19.jar:ro"
