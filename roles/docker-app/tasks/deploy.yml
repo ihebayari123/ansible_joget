@@ -103,7 +103,7 @@
     restart: true
     volumes:
       - "{{ volume_joget }}:/opt/joget/wflow"
-      - "/tmp/postgresql-42.2.19.jar:/deployments/apache-tomcat/lib/postgresql-42.2.19.jar:ro"
+      - "/tmp/postgresql-42.2.19.jar:/deployments/apache-tomcat/webapps/jw/WEB-INF/lib/postgresql-42.2.19.jar:ro"
     networks:
       - name: "{{ network_name }}"
     ports:
