@@ -91,6 +91,12 @@
   shell: |
     docker run --rm -v {{ volume_joget }}:/opt/joget/wflow busybox sh -c "echo 'currentProfile=postgresql' > /opt/joget/wflow/app_datasource.properties"
 
+- name: Restart Joget container to pick up latest datasource config
+  docker_container:
+    name: "{{ joget_container_name }}"
+    state: started
+    restart: true
+
 - name: Run Joget container with PostgreSQL config and driver mounted
   docker_container:
     name: "{{ joget_container_name }}"
