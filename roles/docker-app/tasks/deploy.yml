@@ -72,15 +72,15 @@
   docker_volume:
     name: "{{ volume_joget }}"
 
-- name: Remove any stale directory at the init script destination
+- name: Remove any stale directory at the jdbc driver destination
   file:
-    path: /tmp/jwdb-postgres.sql
+    path: /tmp/postgresql-42.2.19.jar
     state: absent
 
-- name: Copy jwdb-postgres.sql init script to host
+- name: Copy PostgreSQL JDBC driver to host
   copy:
-    src: jwdb-postgres.sql
-    dest: /tmp/jwdb-postgres.sql
+    src: postgresql-42.2.19.jar
+    dest: /tmp/postgresql-42.2.19.jar
 
 - name: Write app_datasource-postgresql.properties into the Joget volume
   shell: |
