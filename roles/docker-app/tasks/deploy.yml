@@ -80,7 +80,7 @@
 
 - name: Write app_datasource-postgresql.properties into the Joget volume
   shell: |
-    docker run --rm -v {{ volume_joget }}:/opt/joget/wflow busybox sh -c "cat > /opt/joget/wflow/app_datasource-postgresql.properties" <<'EOF'
+    docker run --rm -i -v {{ volume_joget }}:/opt/joget/wflow busybox sh -c "cat > /opt/joget/wflow/app_datasource-postgresql.properties" <<'EOF'
     workflowUser={{ postgres_user }}
     workflowPassword={{ postgres_password }}
     workflowDriver=org.postgresql.Driver
