@@ -109,10 +109,15 @@
     ports:
       - "{{ port_joget }}:8080"
 
+- name: Wait a moment for Joget webapp files to be extracted
+  wait_for:
+    timeout: 15
+
 - name: Remove conflicting older commons-lang3 jar from Joget webapp
   shell: docker exec {{ joget_container_name }} rm -f /deployments/apache-tomcat/webapps/jw/WEB-INF/lib/commons-lang3-3.11.jar
   register: remove_old_jar
   failed_when: false
+  changed_when: remove_old_jar.rc == 0
 
 - name: Restart Joget container after removing conflicting jar
   docker_container:
