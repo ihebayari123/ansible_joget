@@ -1,0 +1,41 @@
+# roles/docker-app-delete/tasks/delete.yml
+
+- name: Stop and remove Joget container
+  docker_container:
+    name: "{{ joget_container_name }}"
+    state: absent
+    force_kill: true
+
+- name: Stop and remove PostgreSQL container
+  docker_container:
+    name: "{{ postgres_container_name }}"
+    state: absent
+    force_kill: true
+
+- name: Remove Joget wflow volume
+  docker_volume:
+    name: "{{ volume_joget }}"
+    state: absent
+  ignore_errors: true
+
+- name: Remove Postgres data volume
+  docker_volume:
+    name: "{{ volume_postgres }}"
+    state: absent
+  ignore_errors: true
+
+- name: Remove Docker network
+  docker_network:
+    name: "{{ network_name }}"
+    state: absent
+  ignore_errors: true
+
+- name: Clean up stale init script file/directory
+  file:
+    path: /tmp/jwdb-postgres.sql
+    state: absent
+
+- name: Clean up stale jdbc driver file/directory
+  file:
+    path: /tmp/postgresql-42.2.19.jar
+    state: absent

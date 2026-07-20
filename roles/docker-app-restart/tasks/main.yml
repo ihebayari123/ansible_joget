@@ -1,0 +1,60 @@
+# roles/docker-app-restart/tasks/main.yml
+
+- name: Restart PostgreSQL container
+  docker_container:
+    name: "{{ postgres_container_name }}"
+    image: "postgres:{{ postgres_version }}"
+    restart: true
+    restart_policy: unless-stopped
+    env:
+      POSTGRES_DB: "{{ postgres_db }}"
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+    volumes:
+      - "{{ volume_postgres }}:/var/lib/postgresql/data"
+    networks:
+      - name: "{{ network_name }}"
+    ports:
+      - "{{ port_postgres }}:5432"
+
+- name: Wait for Postgres container to be healthy after restart
+  shell: docker inspect -f '{{ '{{' }} .State.Health.Status {{ '}}' }}' {{ postgres_container_name }}
+  register: pg_health
+  retries: 10
+  delay: 10
+  until: pg_health.stdout == "healthy"
+  ignore_errors: true
+
+- name: Restart Joget container
+  docker_container:
+    name: "{{ joget_container_name }}"
+    image: "{{ joget_image }}:{{ joget_version }}"
+    restart: true
+    restart_policy: unless-stopped
+    volumes:
+      - "{{ volume_joget }}:/opt/joget/wflow"
+      - "/tmp/postgresql-42.2.19.jar:/deployments/apache-tomcat/webapps/jw/WEB-INF/lib/postgresql-42.2.19.jar:ro"
+    networks:
+      - name: "{{ network_name }}"
+    ports:
+      - "{{ port_joget }}:8080"
+
+- name: Wait for Joget container to actually be up before fixing jar conflict
+  shell: docker inspect -f '{{ '{{' }} .State.Running {{ '}}' }}' {{ joget_container_name }}
+  register: joget_running
+  retries: 10
+  delay: 5
+  until: joget_running.stdout == "true"
+
+- name: Re-remove conflicting older commons-lang3 jar (survives container recreation)
+  shell: docker exec -u root {{ joget_container_name }} rm -f /deployments/apache-tomcat/webapps/jw/WEB-INF/lib/commons-lang3-3.11.jar
+  register: remove_old_jar
+  retries: 10
+  delay: 5
+  until: remove_old_jar.rc == 0
+
+- name: Final restart of Joget container after jar cleanup
+  docker_container:
+    name: "{{ joget_container_name }}"
+    state: started
+    restart: true

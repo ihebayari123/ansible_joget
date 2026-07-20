@@ -1,0 +1,6 @@
+- name: Joget on PostgreSQL Teardown
+  hosts: all
+  become: true
+  gather_facts: false
+  roles:
+    - docker-app-delete
