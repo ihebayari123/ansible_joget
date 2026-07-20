@@ -74,7 +74,7 @@
 
 - name: Remove any stale directory at the jdbc driver destination
   file:
-    path: /tmp/postgresql-42.2.19.jar
+    path: /tmp/jwdb-postgres.sql
     state: absent
 
 - name: Copy PostgreSQL JDBC driver to host
