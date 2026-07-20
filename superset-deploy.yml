@@ -1,0 +1,6 @@
+- name: Superset Deployment
+  hosts: all
+  become: true
+  gather_facts: false
+  roles:
+    - superset-deploy

@@ -1,0 +1,3 @@
+# roles/superset-deploy/tasks/main.yml
+- name: Include deploy steps
+  include_tasks: deploy.yml
